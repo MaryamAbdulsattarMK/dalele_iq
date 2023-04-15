@@ -1,22 +1,8 @@
-from django.core.mail import EmailMessage
+import random
+import string
+from django.utils.text import slugify
+from io import BytesIO
 
-
-import threading
-
-
-class EmailThread(threading.Thread):
-
-    def __init__(self, email):
-        self.email = email
-        threading.Thread.__init__(self)
-
-    def run(self):
-        self.email.send()
-
-
-class Util:
-    @staticmethod
-    def send_email(data):
-        email = EmailMessage(
-            subject=data['email_subject'], body=data['email_body'], to=[data['to_email']])
-        EmailThread(email).start()
+def otp_generator():
+    otp = random.randint(999, 9999)
+    return otp

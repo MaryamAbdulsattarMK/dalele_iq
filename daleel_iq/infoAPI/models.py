@@ -28,9 +28,9 @@ class PostDetail(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     expierd_at = models.DateTimeField(default=in_three_days)
     edits_time = models.IntegerField(default=1)
-    view=models.IntegerField(default=0)
-    liked=models.IntegerField(default=0)
-    shared=models.IntegerField(default=0)
+    view=models.IntegerField(default=1)
+    liked=models.IntegerField(default=1)
+    shared=models.IntegerField(default=1)
 
 
 

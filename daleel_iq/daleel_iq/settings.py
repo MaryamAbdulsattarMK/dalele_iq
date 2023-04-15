@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-e+5i%jbigsm_9l=p^%1!snr&4m+m#*=&5-w+@5c)6**mxx=qx_
 DEBUG = True
 
 ALLOWED_HOSTS = []
-AUTH_USER_MODEL = "daleel_iqAPI.myUser"
+AUTH_USER_MODEL = "daleel_iqAPI.User"
 
 # Application definition
 
@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'notifications',
+    'notifications_rest',
     'drf_yasg',
     'django_filters',
     'rest_framework_swagger',
@@ -50,6 +52,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'infoAPI',
     'coreapi',
+    'knox'
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True

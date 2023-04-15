@@ -1,25 +1,32 @@
-from django.urls import path
-from .views import RegisterView, LogoutAPIView, SetNewPasswordAPIView, VerifyEmail, LoginAPIView, PasswordTokenCheckAPI, \
-    RequestPasswordResetEmail, DeleteAccount  # RegisterView_for_mobile
-from rest_framework_simplejwt.views import (
-    TokenRefreshView,
-)
-
+from django.urls import path, include, re_path
+from .views import (SendPhoneOTP,
+					ValidateOTP,
+					Register,
+					LoginAPI,
+					ChangePasswordView,
+					UpdateProfileView,
+					UserView,
+					ValidatePhoneForgot,
+					ValidateForgotOtp,
+					ForgotPasswordChange)
+from knox import views as knox_views
+app_name = "custom_users"
 
 urlpatterns = [
-    path('admin/register', RegisterView.as_view(), name="register"),
-    #path('register/MobileUser', RegisterView_for_mobile.as_view(), name="register"),
-    path('admin/login', LoginAPIView.as_view(), name="login"),
-    path('admin/logout', LogoutAPIView.as_view(), name="logout"),
-    path('admin/email-verify', VerifyEmail.as_view(), name="email-verify"),
-    path('admin/token/refresh', TokenRefreshView.as_view(), name='token_refresh'),
-    path('admin/<int:id>', DeleteAccount.as_view(), name="delete"),
 
-    # path('request-reset-email/', RequestPasswordResetEmail.as_view(),
-   #      name="request-reset-email"),
-   # path('password-reset/<uidb64>/<token>/',
-    #     PasswordTokenCheckAPI.as_view(), name='password-reset-confirm'),
-   # path('password-reset-complete', SetNewPasswordAPIView.as_view(),
-    #     name='password-reset-complete'),
+	path('sendotp/', SendPhoneOTP.as_view()),
+	path('validateotp/', ValidateOTP.as_view()),
+	path('register/', Register.as_view()),
+
+	path('login/', LoginAPI.as_view()),
+	path('logout/', knox_views.LogoutView.as_view()),
+	path('change_password/<int:pk>/', ChangePasswordView.as_view()),
+
+	path('user_profile/', UserView.as_view()),
+	path('update_profile/<int:pk>/', UpdateProfileView.as_view()),
+
+	path('validate_phone_forgot/', ValidatePhoneForgot.as_view()),
+	path('validate_forgot_otp/', ValidateForgotOtp.as_view()),
+	path('change_forgot_password/', ForgotPasswordChange.as_view())
 
 ]

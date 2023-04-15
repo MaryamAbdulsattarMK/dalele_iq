@@ -1,186 +1,103 @@
 from rest_framework import serializers
-from .models import myUser
-from django.contrib import auth
-from rest_framework.exceptions import AuthenticationFailed
-from rest_framework_simplejwt.tokens import RefreshToken, TokenError
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.utils.encoding import smart_str, force_str, smart_bytes, DjangoUnicodeDecodeError
-from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.contrib.auth import authenticate
+
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 
-class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(
-        max_length=68, min_length=6, write_only=True)
 
-    default_error_messages = {
-        'username': 'The username should only contain alphanumeric characters'}
-
+class CreateUserSerialzier(serializers.HyperlinkedModelSerializer):
     class Meta:
-        model = myUser
-        fields = ['email', 'username', 'password']
-
-    def validate(self, attrs):
-        email = attrs.get('email', '')
-        username = attrs.get('username', '')
-
-        if not username.isalnum():
-            raise serializers.ValidationError(
-                self.default_error_messages)
-        return attrs
+        model = User
+        fields = ('id','phone','password')
+        extra_kwargs = {'password':{'write_only':True}}
 
     def create(self, validated_data):
-        return myUser.objects.create_superuser(**validated_data)
+        user = User.objects.create_user(**validated_data)
+        return user
 
 
 
-
-
-class RegisterSerializer_for_mobile(serializers.ModelSerializer):
-    password = serializers.CharField(
-        max_length=68, min_length=6, write_only=True)
-
-    default_error_messages = {
-        'username': 'The username should only contain alphanumeric characters'}
-
+#used for giving in the knox auth login and update user profile
+class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = myUser
-        fields = ['email', 'username', 'password']
+        model = User
+        fields = ('id', 'phone', 'name', 'first_login', 'standard', 'score' )
+
 
     def validate(self, attrs):
-        email = attrs.get('email', '')
-        username = attrs.get('username', '')
+        phone = attrs.get('phone')
+        if phone:
+            if User.objects.filter(phone=phone).exists():
+                if User.objects.filter(phone=phone).count() > 1:
+                    msg = {'detail': 'Phone number is already associated with another user. Try a new one.', 'status':False}
+                    raise serializers.ValidationError(msg)
 
-        if not username.isalnum():
-            raise serializers.ValidationError(
-                self.default_error_messages)
         return attrs
 
-    def create(self, validated_data):
-        return myUser.objects.create_user(**validated_data)
+
+    def update(self, instance, validated_data):
+        instance.phone = validated_data['phone']
+        instance.name = validated_data['name']
+        instance.standard = validated_data['standard']
+        instance.score = validated_data['score']
+
+        instance.save()
+        return instance
 
 
 
 
-
-
-class EmailVerificationSerializer(serializers.ModelSerializer):
-    token = serializers.CharField(max_length=555)
-
-    class Meta:
-        model = myUser
-        fields = ['token']
-
-
-class LoginSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(max_length=255, min_length=3)
+class LoginUserSerializer(serializers.Serializer):
+    phone = serializers.CharField()
     password = serializers.CharField(
-        max_length=68, min_length=6, write_only=True)
-    username = serializers.CharField(
-        max_length=255, min_length=3, read_only=True)
+        style={'input_type': 'password'}, trim_whitespace=False)
 
-    tokens = serializers.SerializerMethodField()
-
-    def get_tokens(self, obj):
-        user = myUser.objects.get(email=obj['email'])
-
-        return {
-            'refresh': user.tokens()['refresh'],
-            'access': user.tokens()['access']
-        }
-
-    class Meta:
-        model = myUser
-        fields = ['email', 'password', 'username', 'tokens']
 
     def validate(self, attrs):
-        email = attrs.get('email', '')
-        password = attrs.get('password', '')
-        filtered_user_by_email = myUser.objects.filter(email=email)
-        user = auth.authenticate(email=email, password=password)
+        phone = attrs.get('phone')
+        password = attrs.get('password')
 
-        if filtered_user_by_email.exists() and filtered_user_by_email[0].auth_provider != 'email':
-            raise AuthenticationFailed(
-                detail='Please continue your login using ' + filtered_user_by_email[0].auth_provider)
+        if phone and password:
+            if User.objects.filter(phone=phone).exists():
+                user = authenticate(request=self.context.get('request'), phone=phone, password=password)
 
-        if not user:
-            raise AuthenticationFailed('Invalid credentials, try again')
-        if not user.is_active:
-            raise AuthenticationFailed('Account disabled, contact admin')
-        if not user.is_verified:
-            raise AuthenticationFailed('Email is not verified')
+            else:
+                msg = {'detail': 'Phone number is not registered.','register': False}
+                raise serializers.ValidationError(msg)
+        else:
+            msg = 'Must include "username" and "password".'
+            raise serializers.ValidationError(msg, code='authorization')
 
-        return {
-            'email': user.email,
-            'username': user.username,
-            'tokens': user.tokens
-        }
-
-        return super().validate(attrs)
-
-
-class ResetPasswordEmailRequestSerializer(serializers.Serializer):
-    email = serializers.EmailField(min_length=2)
-
-    redirect_url = serializers.CharField(max_length=500, required=False)
-
-    class Meta:
-        fields = ['email']
-
-
-class SetNewPasswordSerializer(serializers.Serializer):
-    password = serializers.CharField(
-        min_length=6, max_length=68, write_only=True)
-    token = serializers.CharField(
-        min_length=1, write_only=True)
-    uidb64 = serializers.CharField(
-        min_length=1, write_only=True)
-
-    class Meta:
-        fields = ['password', 'token', 'uidb64']
-
-    def validate(self, attrs):
-        try:
-            password = attrs.get('password')
-            token = attrs.get('token')
-            uidb64 = attrs.get('uidb64')
-
-            id = force_str(urlsafe_base64_decode(uidb64))
-            user = myUser.objects.get(id=id)
-            if not PasswordResetTokenGenerator().check_token(user, token):
-                raise AuthenticationFailed('The reset link is invalid', 401)
-
-            user.set_password(password)
-            user.save()
-
-            return (user)
-        except Exception as e:
-            raise AuthenticationFailed('The reset link is invalid', 401)
-        return super().validate(attrs)
-
-
-class LogoutSerializer(serializers.Serializer):
-    refresh = serializers.CharField()
-
-    default_error_message = {
-        'bad_token': ('Token is expired or invalid')
-    }
-
-    def validate(self, attrs):
-        self.token = attrs['refresh']
+        attrs['user'] = user
         return attrs
 
-    def save(self, **kwargs):
 
-        try:
-            RefreshToken(self.token).blacklist()
 
-        except TokenError:
-            self.fail('bad_token')
-
-class ExpensesSerializer(serializers.ModelSerializer):
+class ChangePasswordSerializer(serializers.HyperlinkedModelSerializer):
+    old_password = serializers.CharField(write_only=True, required=True)
+    password = serializers.CharField(write_only=True, required=True, trim_whitespace=False)
 
     class Meta:
-        model = myUser
-        fields = ['id','email','username','auth_provider', 'auth_token',
-                  'created_at', 'groups', 'is_active', 'is_staff', 'is_superuser', 'is_verified',  'updated_at'
- ]
+        model=User
+        fields = ('old_password','password')
+
+
+    def validate_old_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError({'old_password':"Old password is not correct"})
+        return value
+
+
+    def update(self, instance, validated_data):
+        instance.set_password(validated_data['password'])
+        instance.save()
+
+        return instance
+
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    phone = serializers.CharField(required=True)
+    password = serializers.CharField(required=True)

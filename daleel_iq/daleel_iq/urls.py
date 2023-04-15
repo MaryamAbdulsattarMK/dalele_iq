@@ -40,7 +40,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('signUp/', include('daleel_iqAPI.urls')),
     path('info/', include('infoAPI.urls')),
-
+    path('notifications/', include('notifications_rest.urls')),
+   # path('verificationOTP/', include('verificationOTP.urls')),
     path('swagger.json', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
