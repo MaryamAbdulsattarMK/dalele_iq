@@ -18,11 +18,11 @@ from .Utlis import otp_generator
 
 from .models import User, PhoneOTP
 from .serializer import (CreateUserSerialzier,
-                          ChangePasswordSerializer,
-                          LoginUserSerializer,
-                          UserSerializer,
-                          UserSerializer,
-                          ForgotPasswordSerializer)
+                         ChangePasswordSerializer,
+                         LoginUserSerializer,
+                         userSerializer,
+                         userSerializer,
+                         ForgotPasswordSerializer)
 
 
 class LoginAPI(KnoxLoginView):
@@ -46,13 +46,13 @@ class ChangePasswordView(generics.UpdateAPIView):
 class UpdateProfileView(generics.UpdateAPIView):
     queryset = User.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
-    serializer_class = UserSerializer
+    serializer_class = userSerializer
 
 
 class UserView(generics.RetrieveAPIView):
     authentication_classes = (TokenAuthentication,)
     permission_classes = [permissions.IsAuthenticated, ]
-    serializer_class = UserSerializer
+    serializer_class = userSerializer
 
     def get_object(self):
         return self.request.user
@@ -191,7 +191,8 @@ class ValidateOTP(APIView):
 
 
 class Register(APIView):
-    # permission_classes_by_action = {'create': [permissions.AllowAny]}
+    serializer_class =CreateUserSerialzier
+    permission_classes_by_action = {'create': [permissions.AllowAny]}
     def post(self, *args, **kwargs):
         phone = self.request.data.get('phone', False)
         password = self.request.data.get('password', False)

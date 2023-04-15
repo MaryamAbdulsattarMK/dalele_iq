@@ -19,7 +19,7 @@ class CreateUserSerialzier(serializers.HyperlinkedModelSerializer):
 
 
 #used for giving in the knox auth login and update user profile
-class UserSerializer(serializers.ModelSerializer):
+class userSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'phone', 'name', 'first_login', 'standard', 'score' )
