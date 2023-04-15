@@ -145,6 +145,7 @@ class SendPhoneOTP(APIView):
                 'status': False,
                 'detail': 'No phone number has been received. Kindly do the POST request.'
             })
+        print(otp)
 
 
 '''
